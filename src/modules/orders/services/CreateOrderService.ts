@@ -4,8 +4,8 @@ import AppError from '@shared/errors/AppError';
 
 import IProductsRepository from '@modules/products/repositories/IProductsRepository';
 import ICustomersRepository from '@modules/customers/repositories/ICustomersRepository';
-import Order from '../infra/typeorm/entities/Order';
 import IOrdersRepository from '../repositories/IOrdersRepository';
+import Order from '../infra/typeorm/entities/Order';
 
 interface IProduct {
   id: string;
@@ -43,9 +43,33 @@ class CreateProductService {
 
     const productsData = await this.productsRepository.findAllById(productsId);
 
+    const productsDUpdatedQuantity = productsData.map(productData => {
+      const data = products.find(product => product.id === productData.id);
+
+      const lessQuantity = data ? data.quantity : 0;
+
+      return {
+        ...productData,
+        quantity: productData.quantity - lessQuantity,
+        product_id: productData.id,
+      };
+    });
+
+    await this.productsRepository.updateQuantity(productsDUpdatedQuantity);
+
+    const productsAddPrice = products.map(product => {
+      const data = productsData.find(
+        productData => product.id === productData.id,
+      );
+
+      const price = data ? data.price : 0;
+
+      return { product_id: product.id, quantity: product.quantity, price };
+    });
+
     const order = await this.ordersRepository.create({
-      customer_id,
-      products: productsData,
+      customer: checkCustomerExists,
+      products: productsAddPrice,
     });
 
     return order;
