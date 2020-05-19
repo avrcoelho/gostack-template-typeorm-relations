@@ -12,6 +12,12 @@ interface IProduct {
   quantity: number;
 }
 
+interface IProductData {
+  product_id: string;
+  quantity: number;
+  price: number;
+}
+
 interface IRequest {
   customer_id: string;
   products: IProduct[];
@@ -43,29 +49,35 @@ class CreateProductService {
 
     const productsData = await this.productsRepository.findAllById(productsId);
 
-    const productsDUpdatedQuantity = productsData.map(productData => {
-      const data = products.find(product => product.id === productData.id);
+    const productsDUpdatedQuantity: IProduct[] = [];
+    const productsAddPrice: IProductData[] = [];
 
-      const lessQuantity = data ? data.quantity : 0;
+    products.forEach(product => {
+      const data = productsData.find(
+        productData => productData.id === product.id,
+      );
 
-      return {
-        ...productData,
-        quantity: productData.quantity - lessQuantity,
-        product_id: productData.id,
-      };
+      if (!data) {
+        throw new AppError('produc not found');
+      }
+
+      if (product.quantity > data.quantity) {
+        throw new AppError('Quantity not disponible');
+      }
+
+      productsDUpdatedQuantity.push({
+        quantity: data.quantity - product.quantity,
+        id: product.id,
+      });
+
+      productsAddPrice.push({
+        product_id: product.id,
+        quantity: product.quantity,
+        price: data.price,
+      });
     });
 
     await this.productsRepository.updateQuantity(productsDUpdatedQuantity);
-
-    const productsAddPrice = products.map(product => {
-      const data = productsData.find(
-        productData => product.id === productData.id,
-      );
-
-      const price = data ? data.price : 0;
-
-      return { product_id: product.id, quantity: product.quantity, price };
-    });
 
     const order = await this.ordersRepository.create({
       customer: checkCustomerExists,

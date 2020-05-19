@@ -6,8 +6,6 @@ import {
   OneToOne,
   JoinColumn,
   OneToMany,
-  ManyToMany,
-  JoinTable,
 } from 'typeorm';
 
 import Customer from '@modules/customers/infra/typeorm/entities/Customer';
@@ -20,14 +18,15 @@ class Order {
 
   @OneToOne(() => Customer, {
     cascade: true,
+    eager: true,
   })
   @JoinColumn({ name: 'customer_id' })
   customer: Customer;
 
-  @ManyToMany(() => OrdersProducts, ordersproducts => ordersproducts.product, {
-    cascade: ['insert'],
+  @OneToMany(() => OrdersProducts, ordersproducts => ordersproducts.order, {
+    cascade: true,
+    eager: true,
   })
-  @JoinTable({ name: 'order_products' })
   order_products: OrdersProducts[];
 
   @CreateDateColumn()
